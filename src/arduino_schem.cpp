@@ -46,6 +46,7 @@ float Temperature(int AnalogInputNumber,int OutputUnit,float B,float T0,float R0
   float R,T;
 
 //  R=1024.0f*R_Balance/float(analogRead(AnalogInputNumber)))-R_Balance;
+  R=R_Balance*(1024.0f/float(analogRead(AnalogInputNumber))-1);
 
   T=1.0f/(1.0f/T0+(1.0f/B)*log(R/R0));
 
@@ -132,6 +133,7 @@ void setup() {
   lcd.setCursor(6, 1);
   lcd.print("bus!");
   delay(5000);
+  delay(2000);
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Version: ");
@@ -142,6 +144,7 @@ void setup() {
   lcd.setCursor(4, 1);
   lcd.print(authour);
   delay(5000);
+  delay(2000);
   lcd.clear();
   // splash screen ↑===============================
 
@@ -277,8 +280,7 @@ void serialPrint(int num) {
   Serial.println("ohms");//Water Temp Sensor wt1
   //
   Serial.println("");
-  Serial.println("");
-  Serial.println("");
+
 
   // Battery Voltage Alarm
  if(ebv1_voltsHH ==1){
