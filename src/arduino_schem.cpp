@@ -12,9 +12,9 @@ String authour = "J. Bracken";
 tag: ebv1 | description: Engine Battery Voltage
 functional description: 0 - ~16volt voltmeter uses the stable internal 1.1volt reference. 6k8 resistor from A0 to ground, and 100k resistor from A0 to +batt 100n capacitor from A0 to ground for stable readings
 */
-
+const byte wt1Pin = A8;
 float Aref = 1.073;       // ***calibrate battery voltage here*** | change this to the actual Aref voltage of Arduino
-unsigned int total;       // can hold max 64 readings
+unsigned int ebv1_total;       // can hold max 64 readings
 float ebv1_R1 = 99080.0;  //value of large volt divider resistor for engine battery voltage
 float ebv1_R2 = 6760.0;   //value of Small volt divider resistor for engine battery voltage
 float ebv1_resRatio = ((ebv1_R1 + ebv1_R2) / (ebv1_R2)); //ratio of voltage divider
@@ -40,12 +40,12 @@ float wt1_T1 = (273.15 + 40);    // [K] in datasheet 0º C (fill in RHS number w
 float wt1_T2 = (273.15 + 120);    // [K] in datasheet 100° C (fill in RHS number with URV degrees C)
 float wt1_RT1 = 291.5; // [ohms]  resistance for T1
 float wt1_RT2 = 22.4;  // [ohms]   resistance for T2
-float beta = 0.0;  // initial parameters [K]
-float Rinf = 0.0;  // initial parameters [ohm]
-float TempK = 0.0; // variable output
-float TempC = 0.0; // variable output
+float wt1_beta = 0.0;  // initial parameters [K]
+float wt1_Rinf = 0.0;  // initial parameters [ohm]
+float wt1_TempK = 0.0; // variable output
+float wt1_TempC = 0.0; // variable output
 int wtrTempAlarm =0;
-// for resistance measurement ↑
+// ↑
 
 // for display ↓===========================
 #include <LiquidCrystal.h>
@@ -85,7 +85,6 @@ void setup() {
   analogReference(INTERNAL1V1); // use the internal ~1.1volt reference  | change (INTERNAL) to (INTERNAL1V1) for a Mega
   Serial.begin(9600); // set serial monitor to this value
 
-
   //splash screen ↓===================================
   lcd.begin(16, 2);
   lcd.clear();
@@ -109,8 +108,8 @@ void setup() {
 
 
   //==for ntc thermistor correction ↓
-  beta = (log(wt1_RT1 / wt1_RT2)) / ((1 / wt1_T1) - (1 / wt1_T2));
-  Rinf = wt1_R0 * exp(-beta / wt1_T0);
+  wt1_beta = (log(wt1_RT1 / wt1_RT2)) / ((1 / wt1_T1) - (1 / wt1_T2));
+  wt1_Rinf = wt1_R0 * exp(-wt1_beta / wt1_T0);
   //==for ntc thermistor correction ↑
 }
 
@@ -120,23 +119,23 @@ void loop() {
 
 void batteryV() {
   for (int x = 0; x < 64; x++) { // multiple analogue readings for averaging
-    total = total + analogRead(A8); // add each value to a total
+    ebv1_total = ebv1_total + analogRead(A8); // add each value to a total
   }
-  ebv1_volts = (total / 64) * ebv1_resRatio * Aref / 1024 ; // convert readings to volt
+  ebv1_volts = (ebv1_total / 64) * ebv1_resRatio * Aref / 1024 ; // convert readings to volt
 
 
-  if (total == (1023 * 64)) {
+  if (ebv1_total == (1023 * 64)) {
     ebv1_voltsHH = 1;
   }
   else {
     ebv1_voltsHH = 0;
   }
-   total = 0; // reset value
+  ebv1_total = 0; // reset value
   delay(1000); // one second between measurements
 }
 
 void waterTemp() {
-  // for resistance ↓
+  //tag: wt1
   raw = analogRead(analogPin);
   if (raw)
   {
@@ -147,18 +146,18 @@ void waterTemp() {
   }
 
   //calculate and print water temperature↓
-  TempK = (beta / log(wt1_R2 / Rinf)); // calc for temperature
-  TempC = TempK - 273.15;
+  wt1_TempK = (wt1_beta / log(wt1_R2 / wt1_Rinf)); // calc for temperature
+  wt1_TempC = wt1_TempK - 273.15;
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Water Temp: ");
   lcd.setCursor(0, 1);
-  lcd.print(TempC);
+  lcd.print(wt1_TempC);
   lcd.write(0xdf); // to display °
   lcd.print("C  ");
   delay(1200);
 
-if(TempC > 105){
+if(wt1_TempC > 105){
   wtrTempAlarm = 1;
 }
 else{ wtrTempAlarm = 0;
