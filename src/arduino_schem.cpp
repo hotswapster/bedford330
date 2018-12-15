@@ -46,7 +46,6 @@ float Temperature(int AnalogInputNumber,int OutputUnit,float B,float T0,float R0
   float R,T;
 
 //  R=1024.0f*R_Balance/float(analogRead(AnalogInputNumber)))-R_Balance;
-  R=R_Balance*(1024.0f/float(analogRead(AnalogInputNumber))-1);
 
   T=1.0f/(1.0f/T0+(1.0f/B)*log(R/R0));
 
