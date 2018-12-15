@@ -22,26 +22,24 @@ float ebv1_volts;         // converted to volt
 int ebv1_voltsHH = 0;     //0 = healthy, 1 = alarm
 // ↑
 
-/*
+/* ↓
 tag:wt1 | description: Engine Water Temperature
 functional description: Voltage divider to measure the resistance of the sensor
- */
-/*for resistance measurement ↓
-314 ohms is maximum measured capability */
-int analogPin = A9; //tag: wt1
+note: 314 ohms is maximum measured capability */
+int analogPin = A9;
 int raw = 0;
-float Vout = 0;
-float R1 = 3292;
-float R2 = 0;
-float buffer = 0;
+float wt1_Vout = 0;
+float wt1_R1 = 3292;
+float wt1_R2 = 0;
+float wt1_buffer = 0;
 //--NTC calibration
-float R0 = 197.3;  // value of rct in T0 [ohm] (Choose midpoint on curve near operating range or Datasheet correction temperature)
-float T0 = (273.15 + 50); // use T0 in Kelvin [K]
+float wt1_R0 = 197.3;  // value of rct in T0 [ohm] (Choose midpoint on curve near operating range or Datasheet correction temperature)
+float wt1_T0 = (273.15 + 50); // use T0 in Kelvin [K]
 // use the datasheet to get this data.
-float T1 = (273.15 + 40);    // [K] in datasheet 0º C (fill in RHS number with LRV degrees C)
-float T2 = (273.15 + 120);    // [K] in datasheet 100° C (fill in RHS number with URV degrees C)
-float RT1 = 291.5; // [ohms]  resistance for T1
-float RT2 = 22.4;  // [ohms]   resistance for T2
+float wt1_T1 = (273.15 + 40);    // [K] in datasheet 0º C (fill in RHS number with LRV degrees C)
+float wt1_T2 = (273.15 + 120);    // [K] in datasheet 100° C (fill in RHS number with URV degrees C)
+float wt1_RT1 = 291.5; // [ohms]  resistance for T1
+float wt1_RT2 = 22.4;  // [ohms]   resistance for T2
 float beta = 0.0;  // initial parameters [K]
 float Rinf = 0.0;  // initial parameters [ohm]
 float TempK = 0.0; // variable output
@@ -111,8 +109,8 @@ void setup() {
 
 
   //==for ntc thermistor correction ↓
-  beta = (log(RT1 / RT2)) / ((1 / T1) - (1 / T2));
-  Rinf = R0 * exp(-beta / T0);
+  beta = (log(wt1_RT1 / wt1_RT2)) / ((1 / wt1_T1) - (1 / wt1_T2));
+  Rinf = wt1_R0 * exp(-beta / wt1_T0);
   //==for ntc thermistor correction ↑
 }
 
@@ -142,14 +140,14 @@ void waterTemp() {
   raw = analogRead(analogPin);
   if (raw)
   {
-    buffer = raw * Aref;
-    Vout = (buffer) / 1024.0;
-    buffer = (ebv1_volts / Vout);
-    R2 = R1 / buffer;
+    wt1_buffer = raw * Aref;
+    wt1_Vout = (wt1_buffer) / 1024.0;
+    wt1_buffer = (ebv1_volts / wt1_Vout);
+    wt1_R2 = wt1_R1 / wt1_buffer;
   }
 
   //calculate and print water temperature↓
-  TempK = (beta / log(R2 / Rinf)); // calc for temperature
+  TempK = (beta / log(wt1_R2 / Rinf)); // calc for temperature
   TempC = TempK - 273.15;
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -224,12 +222,12 @@ void myDisplay() {
 }
 
 void serialPrint() {
-  Serial.print("Vout: ");
-  Serial.print(Vout);
-  Serial.println("volts");//Battery Volts
+  Serial.print("wt1_Vout: ");
+  Serial.print(wt1_Vout);
+  Serial.println("volts");
   //
   Serial.print("Measured Resistance: ");
-  Serial.print(R2);
+  Serial.print(wt1_R2);
   Serial.println("ohms");//Water Temp Sensor wt1
   //
   Serial.println("");
