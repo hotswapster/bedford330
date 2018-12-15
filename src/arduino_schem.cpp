@@ -124,7 +124,7 @@ void setup() {
 
   analogReference(INTERNAL1V1); // use the internal ~1.1volt reference  | change (INTERNAL) to (INTERNAL1V1) for a Mega
   Serial.begin(9600); // set serial monitor to this value
-
+  Serial.println("Booting");
   //splash screen ↓===================================
   lcd.begin(16, 2);
   lcd.clear();
@@ -154,10 +154,14 @@ void setup() {
 }
 
 void loop() {
-  delay(10);
+  batteryV(1);
+  waterTemp(2);
+  myDisplay(3);
+  serialPrint(4);
+  delay(2000);
 }
 
-void batteryV() {
+void batteryV(int num) {
   for (int x = 0; x < 64; x++) { // multiple analogue readings for averaging
     ebv1_total = ebv1_total + analogRead(ebv1_pin); // add each value to a total
   }
@@ -174,7 +178,7 @@ void batteryV() {
   delay(1000); // one second between measurements
 }
 
-void waterTemp() {
+void waterTemp(int num) {
   //tag: wt1
   wt1_raw = analogRead(wt1_pin);
   if (wt1_raw)
@@ -193,7 +197,12 @@ void waterTemp() {
   lcd.print("Wtr T Old: ");
   lcd.setCursor(12, 0);
   lcd.print(wt1_TempC);
+  lcd.setCursor(0, 1);
   lcd.print(Temperature(wt1_pin,T_CELSIUS,wt1_beta,wt1_T0,wt1_R0,wt1_R2));
+  Serial.print(wt1_TempC);
+  Serial.println("C from long");
+  Serial.print(Temperature(wt1_pin,T_CELSIUS,wt1_beta,wt1_T0,wt1_R0,wt1_R2));
+  Serial.println("C from template");
   delay(1200);
 
 if(wt1_TempC > 105){
@@ -203,7 +212,7 @@ else{ wt1_TAH = 0;
 }
 }
 
-void myDisplay() {
+void myDisplay(int num) {
 //battery voltage alarm
  if(ebv1_voltsHH ==1){
     lcd.clear();
@@ -257,9 +266,9 @@ void myDisplay() {
       }
     }*/
   // for display ↑
+//}
 }
-
-void serialPrint() {
+void serialPrint(int num) {
   Serial.print("wt1_Vout: ");
   Serial.print(wt1_Vout);
   Serial.println("volts");
@@ -277,7 +286,7 @@ void serialPrint() {
     Serial.println("Voltage High Alarm");
  }
  else{
-    Serial.print("Battery volts: ");
-    Serial.print(ebv1_volts);
+     Serial.print("Battery volts: ");
+     Serial.println(ebv1_volts);
 }
 }
