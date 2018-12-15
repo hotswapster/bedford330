@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <math.h>
 
 void batteryV(int num);
 void waterTemp(int num);
@@ -8,11 +9,14 @@ void serialPrint(int num);
 String myVersion = "0.01";
 String authour = "J. Bracken";
 
+const byte ebv1_pin = A8;
+const byte wt1_pin = A9;
+
 /* ↓
 tag: ebv1 | description: Engine Battery Voltage
 functional description: 0 - ~16volt voltmeter uses the stable internal 1.1volt reference. 6k8 resistor from A0 to ground, and 100k resistor from A0 to +batt 100n capacitor from A0 to ground for stable readings
 */
-const byte wt1Pin = A8;
+
 float Aref = 1.073;       // ***calibrate battery voltage here*** | change this to the actual Aref voltage of Arduino
 unsigned int ebv1_total;       // can hold max 64 readings
 float ebv1_R1 = 99080.0;  //value of large volt divider resistor for engine battery voltage
@@ -22,12 +26,48 @@ float ebv1_volts;         // converted to volt
 int ebv1_voltsHH = 0;     //0 = healthy, 1 = alarm
 // ↑
 
+//attempting to use therminstor template ↓
+enum {
+  T_KELVIN=0,
+  T_CELSIUS,
+};
+
+/* Temperature function inputs
+1.AnalogInputNumber - analog input to read from
+2.OuputUnit - output in celsius, kelvin or fahrenheit
+3.Thermistor B parameter - found in datasheet
+4.Manufacturer T0 parameter - found in datasheet (kelvin)
+5. Manufacturer R0 parameter - found in datasheet (ohms)
+6. Your balance resistor resistance in ohms
+↑*/
+
+float Temperature(int AnalogInputNumber,int OutputUnit,float B,float T0,float R0,float R_Balance)
+{
+  float R,T;
+
+//  R=1024.0f*R_Balance/float(analogRead(AnalogInputNumber)))-R_Balance;
+  R=R_Balance*(1024.0f/float(analogRead(AnalogInputNumber))-1);
+
+  T=1.0f/(1.0f/T0+(1.0f/B)*log(R/R0));
+
+  switch(OutputUnit) {
+    case T_CELSIUS :
+      T-=273.15f;
+    break;
+    default:
+    break;
+  };
+
+  return T;
+}
+
+
+
 /* ↓
 tag:wt1 | description: Engine Water Temperature
 functional description: Voltage divider to measure the resistance of the sensor
 note: 314 ohms is maximum measured capability */
-int analogPin = A9;
-int raw = 0;
+int wt1_raw = 0;
 float wt1_Vout = 0;
 float wt1_R1 = 3292;
 float wt1_R2 = 0;
@@ -44,7 +84,7 @@ float wt1_beta = 0.0;  // initial parameters [K]
 float wt1_Rinf = 0.0;  // initial parameters [ohm]
 float wt1_TempK = 0.0; // variable output
 float wt1_TempC = 0.0; // variable output
-int wtrTempAlarm =0;
+int wt1_TAH =0;
 // ↑
 
 // for display ↓===========================
@@ -119,7 +159,7 @@ void loop() {
 
 void batteryV() {
   for (int x = 0; x < 64; x++) { // multiple analogue readings for averaging
-    ebv1_total = ebv1_total + analogRead(A8); // add each value to a total
+    ebv1_total = ebv1_total + analogRead(ebv1_pin); // add each value to a total
   }
   ebv1_volts = (ebv1_total / 64) * ebv1_resRatio * Aref / 1024 ; // convert readings to volt
 
@@ -136,10 +176,10 @@ void batteryV() {
 
 void waterTemp() {
   //tag: wt1
-  raw = analogRead(analogPin);
-  if (raw)
+  wt1_raw = analogRead(wt1_pin);
+  if (wt1_raw)
   {
-    wt1_buffer = raw * Aref;
+    wt1_buffer = wt1_raw * Aref;
     wt1_Vout = (wt1_buffer) / 1024.0;
     wt1_buffer = (ebv1_volts / wt1_Vout);
     wt1_R2 = wt1_R1 / wt1_buffer;
@@ -150,17 +190,16 @@ void waterTemp() {
   wt1_TempC = wt1_TempK - 273.15;
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("Water Temp: ");
-  lcd.setCursor(0, 1);
+  lcd.print("Wtr T Old: ");
+  lcd.setCursor(12, 0);
   lcd.print(wt1_TempC);
-  lcd.write(0xdf); // to display °
-  lcd.print("C  ");
+  lcd.print(Temperature(wt1_pin,T_CELSIUS,wt1_beta,wt1_T0,wt1_R0,wt1_R2));
   delay(1200);
 
 if(wt1_TempC > 105){
-  wtrTempAlarm = 1;
+  wt1_TAH = 1;
 }
-else{ wtrTempAlarm = 0;
+else{ wt1_TAH = 0;
 }
 }
 
