@@ -45,8 +45,10 @@ float Temperature(int AnalogInputNumber,int OutputUnit,float B,float T0,float R0
 {
   float R,T;
 
-//  R=1024.0f*R_Balance/float(analogRead(AnalogInputNumber)))-R_Balance;
-  R=R_Balance*(1024.0f/float(analogRead(AnalogInputNumber))-1);
+
+  R=(R_Balance*((float(analogRead(AnalogInputNumber)))/(1024.0f-1.0f)))*(Aref/ebv1_volts);
+  Serial.print("Smart resistance: ");
+  Serial.println(R);
 
   T=1.0f/(1.0f/T0+(1.0f/B)*log(R/R0));
 
@@ -132,8 +134,7 @@ void setup() {
   lcd.print("The vi-Kerry-ous");
   lcd.setCursor(6, 1);
   lcd.print("bus!");
-  delay(5000);
-  delay(2000);
+  delay(500);
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Version: ");
@@ -143,8 +144,7 @@ void setup() {
   lcd.print("by ");
   lcd.setCursor(4, 1);
   lcd.print(authour);
-  delay(5000);
-  delay(2000);
+  delay(500);
   lcd.clear();
   // splash screen ↑===============================
 
@@ -200,11 +200,12 @@ void waterTemp(int num) {
   lcd.setCursor(12, 0);
   lcd.print(wt1_TempC);
   lcd.setCursor(0, 1);
-  lcd.print(Temperature(wt1_pin,T_CELSIUS,wt1_beta,wt1_T0,wt1_R0,wt1_R2));
+  lcd.print(Temperature(wt1_pin,T_CELSIUS,wt1_beta,wt1_T0,wt1_R0,wt1_R1));
   Serial.print(wt1_TempC);
   Serial.println("C from long");
-  Serial.print(Temperature(wt1_pin,T_CELSIUS,wt1_beta,wt1_T0,wt1_R0,wt1_R2));
+  Serial.print(Temperature(wt1_pin,T_CELSIUS,wt1_beta,wt1_T0,wt1_R0,wt1_R1));
   Serial.println("C from template");
+
   delay(1200);
 
 if(wt1_TempC > 105){
@@ -271,11 +272,11 @@ void myDisplay(int num) {
 //}
 }
 void serialPrint(int num) {
-  Serial.print("wt1_Vout: ");
+/*  Serial.print("wt1_Vout: ");
   Serial.print(wt1_Vout);
-  Serial.println("volts");
+  Serial.println("volts");*/
   //
-  Serial.print("Measured Resistance: ");
+  Serial.print("Long Resistance: ");
   Serial.print(wt1_R2);
   Serial.println("ohms");//Water Temp Sensor wt1
   //
@@ -286,8 +287,8 @@ void serialPrint(int num) {
  if(ebv1_voltsHH ==1){
     Serial.println("Voltage High Alarm");
  }
- else{
-     Serial.print("Battery volts: ");
-     Serial.println(ebv1_volts);
-}
+// else{
+//     Serial.print("Battery volts: ");
+  //   Serial.println(ebv1_volts);
+//}
 }
