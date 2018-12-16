@@ -13,8 +13,8 @@ String myVersion = "0.01";
 String authour = "J. Bracken";
 
 //analog input pin assignment
-const byte ebv1_pin = A8; //Engine Battery Voltage
-const byte wt1_pin = A9;  //Engine water temp
+const byte ebv1_pin = A9; //Engine Battery Voltage
+const byte wt1_pin = A13;  //Engine water temp
 const byte ot1_pin = A14; //Engine oil temp
 const byte fl1_pin = A12; //Fuel Tank 1 level
 const byte fl2_pin = A11; //Fuel Tank 2 level
@@ -157,8 +157,8 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 // for display ↑==============================
 
 //Fuel level
-int fl1;
-int fl2;
+float fl1;
+float fl2;
 //Fuel calibration
 int fl1_LRV = 200; //counts on input at 0% level
 int fl1_URV = 950; //counts on input at 100% level
@@ -166,8 +166,8 @@ int fl2_LRV = 200; //counts on input at 0% level
 int fl2_URV = 950; //counts on input at 100% level
 
 //Oil and Brake pressure
-int op1;
-int bp1;
+float op1;
+float bp1;
 //Pressure calibration
 int op1_LRV = 200;  //counts on input at 0% level
 int op1_URV = 950;  //counts on input at 100% level
