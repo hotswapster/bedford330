@@ -3,9 +3,11 @@
 
 void batteryV(int num);
 void temperature(int num);
+void level(int num);
+void pressure(int num);
 void myDisplay(int num);
 void serialPrint(int num);
-void level(int num);
+
 
 String myVersion = "0.01";
 String authour = "J. Bracken";
@@ -17,6 +19,7 @@ const byte ot1_pin = A14; //Engine oil temp
 const byte fl1_pin = A12; //Fuel Tank 1 level
 const byte fl2_pin = A11; //Fuel Tank 2 level
 const byte bp1_pin = A10; //Brake Air Pressure Reservior
+const byte op1_pin = A15; //Engine oil pressure
 
 //analog output pin assignment
 const byte wg1_pin = A7; //Water Gauge Dash
@@ -162,6 +165,16 @@ int fl1_URV = 950; //counts on input at 100% level
 int fl2_LRV = 200; //counts on input at 0% level
 int fl2_URV = 950; //counts on input at 100% level
 
+//Oil and Brake pressure
+int op1;
+int bp1;
+
+//Pressure calibration
+int op1_LRV = 200; //counts on input at 0% level
+int op1_URV = 950; //counts on input at 100% level
+int bp1_LRV = 200; //counts on input at 0% level
+int bp1_URV = 950; //counts on input at 100% level
+
 void setup() {
 
   analogReference(INTERNAL1V1); // use the internal ~1.1volt reference  | change (INTERNAL) to (INTERNAL1V1) for a Mega
@@ -206,9 +219,10 @@ void setup() {
 void loop() {
   batteryV(1);
   temperature(2);
-  myDisplay(3);
-  serialPrint(4);
-  level(5);
+  level(3);
+  pressure(4);
+  myDisplay(5);
+  serialPrint(6);
   delay(2000);
 }
 
@@ -252,8 +266,8 @@ void temperature(int num) {
 void level(int num) {
   int sensorValue1 = analogRead(fl1_pin);
   int sensorValue2 = analogRead(fl2_pin);
-  fl1 = map(sensorValue1, fl1_LRV, fl1_URV, 0, 100);
-  fl2 = map(sensorValue2, fl2_LRV, fl2_URV, 0, 100);
+  fl1 = map(sensorValue1, fl1_LRV, fl1_URV, 0, 100); //assumes linear sensor
+  fl2 = map(sensorValue2, fl2_LRV, fl2_URV, 0, 100); //assumes linear sensor
   if (fl1 < 0) {
     fl1 = 0;
   }
@@ -265,6 +279,24 @@ void level(int num) {
   }
   if (fl2 > 100) {
     fl2 = 100;
+  }
+}
+void pressure(int num) {
+  int sensorValue3 = analogRead(op1_pin);
+  int sensorValue4 = analogRead(bp1_pin);
+  op1 = map(sensorValue3, op1_LRV, op1_URV, 0, 100); //assumes linear sensor
+  bp1 = map(sensorValue4, bp1_LRV, bp1_URV, 0, 100); //assumes linear sensor
+  if (op1 < 0) {
+    op1 = 0;
+  }
+  if (bp1 < 0) {
+    bp1 = 0;
+  }
+  if (op1 > 100) {
+    op1 = 100;
+  }
+  if (bp1 > 100) {
+    bp1 = 100;
   }
 }
 void myDisplay(int num) {
@@ -331,11 +363,22 @@ void serialPrint(int num) {
   Serial.print(wt1_TempC);
   Serial.println("C");
   //
-  //Oil Temp Sensor wt1
+  //Oil Temp Sensor ot1
   //
   Serial.print("Engine Oil Temp: ");
   Serial.print(ot1_TempC);
   Serial.println("C");
+
+  //Fuel Level Tank 1 fl1
+  //
+  Serial.print("Diesel Tank 1: ");
+  Serial.print(fl1);
+  Serial.println("%");
+  //Fuel Level Tank 2 fl2
+  //
+  Serial.print("Diesel Tank 2: ");
+  Serial.print(fl1);
+  Serial.println("%");
 
   // Battery Voltage Alarm
  if(ebv1_voltsHH ==1){
