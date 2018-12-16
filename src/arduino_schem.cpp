@@ -2,15 +2,38 @@
 #include <math.h>
 
 void batteryV(int num);
-void waterTemp(int num);
+void temperature(int num);
 void myDisplay(int num);
 void serialPrint(int num);
+void level(int num);
 
 String myVersion = "0.01";
 String authour = "J. Bracken";
 
-const byte ebv1_pin = A8;
-const byte wt1_pin = A9;
+//analog input pin assignment
+const byte ebv1_pin = A8; //Engine Battery Voltage
+const byte wt1_pin = A9;  //Engine water temp
+const byte ot1_pin = A14; //Engine oil temp
+const byte fl1_pin = A12; //Fuel Tank 1 level
+const byte fl2_pin = A11; //Fuel Tank 2 level
+const byte bp1_pin = A10; //Brake Air Pressure Reservior
+
+//analog output pin assignment
+const byte wg1_pin = A7; //Water Gauge Dash
+const byte fg1_pin = A8; //Fuel Gauge Dash
+
+//high speed digital input pin assignment
+const byte rs1_pin = 2; //Road speed
+const byte es1_pin = 3; //Engine Speed
+
+//digital input pin assignment
+const byte opl1_pin = 24; //Oil P switch input
+const byte bpl1_pin = 25; //Brake Pressure Low switch
+
+//digital output pin assignment
+const byte dl1_pin = 22; //Oil Light Dash
+const byte dl2_pin = 23; //Other dash light
+
 
 /* ↓
 tag: ebv1 | description: Engine Battery Voltage
@@ -41,7 +64,7 @@ enum {
 6. Your balance resistor resistance in ohms
 ↑*/
 
-float Temperature(int AnalogInputNumber,int OutputUnit,float B,float T0,float R0,float R_Balance){
+float Thermistor(int AnalogInputNumber,int OutputUnit,float B,float T0,float R0,float R_Balance){
   float R,T;
 
   R=(R_Balance*((float(analogRead(AnalogInputNumber)))/(1024.0f-1.0f)))*(Aref/ebv1_volts); //required correction for use of different voltage references
@@ -61,8 +84,8 @@ float Temperature(int AnalogInputNumber,int OutputUnit,float B,float T0,float R0
 //thermistor template ↑
 
 
-/* ↓
-tag:wt1 | description: Engine Water Temperature
+
+/* ↓ tag:wt1 | description: Engine Water Temperature
 functional description: Voltage divider to measure the resistance of the sensor
 note: 314 ohms is maximum measured capability */
 float wt1_R1 = 3292; //actual resistance of resistor between 12v line and the sensor
@@ -77,6 +100,24 @@ float wt1_RT2 = 22.4;  // [ohms]   resistance for T2
 float wt1_beta = 0.0;  // initial parameters [K]
 float wt1_TempC = 0.0; // variable output
 int wt1_TAH =0;
+// ↑
+
+/* ↓
+tag:ot1 | description: Engine Oil Temperature
+functional description: Voltage divider to measure the resistance of the sensor
+note: 314 ohms is maximum measured capability */
+float ot1_R1 = 3292; //actual resistance of resistor between 12v line and the sensor
+//--NTC calibration
+float ot1_R0 = 197.3;  // value of rct in T0 [ohm] (Choose midpoint on curve near operating range or Datasheet correction temperature)
+float ot1_T0 = (273.15 + 50); // datasheet temperature at R0 (above)
+// use the datasheet to get this data.
+float ot1_T1 = (273.15 + 40);    // [K] in datasheet 0º C (fill in RHS number with LRV degrees C)
+float ot1_T2 = (273.15 + 120);    // [K] in datasheet 100° C (fill in RHS number with URV degrees C)
+float ot1_RT1 = 291.5; // [ohms]  resistance for T1
+float ot1_RT2 = 22.4;  // [ohms]   resistance for T2
+float ot1_beta = 0.0;  // initial parameters [K]
+float ot1_TempC = 0.0; // variable output
+int ot1_TAH =0;
 // ↑
 
 // for display ↓===========================
@@ -112,11 +153,27 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
   }*/
 // for display ↑==============================
 
+//Fuel level
+int fl1;
+int fl2;
+//Fuel calibration
+int fl1_LRV = 200; //counts on input at 0% level
+int fl1_URV = 950; //counts on input at 100% level
+int fl2_LRV = 200; //counts on input at 0% level
+int fl2_URV = 950; //counts on input at 100% level
+
 void setup() {
 
   analogReference(INTERNAL1V1); // use the internal ~1.1volt reference  | change (INTERNAL) to (INTERNAL1V1) for a Mega
   Serial.begin(9600); // set serial monitor to this value
-  Serial.println("Booting");
+  Serial.println("Booting.");
+  Serial.println("Booting..");
+  Serial.println("Booting...");
+  Serial.print("Version: ");
+  Serial.println(myVersion);
+  Serial.print("By: ");
+  Serial.println(authour);
+  Serial.println("");
   //splash screen ↓===================================
   lcd.begin(16, 2);
   lcd.clear();
@@ -148,9 +205,10 @@ void setup() {
 
 void loop() {
   batteryV(1);
-  waterTemp(2);
+  temperature(2);
   myDisplay(3);
   serialPrint(4);
+  level(5);
   delay(2000);
 }
 
@@ -170,20 +228,45 @@ void batteryV(int num) {
   ebv1_total = 0; // reset value
   delay(1000); // one second between measurements
 }
-
-void waterTemp(int num) {
+void temperature(int num) {
   //tag: wt1
-  wt1_TempC = Temperature(wt1_pin,T_CELSIUS,wt1_beta,wt1_T0,wt1_R0,wt1_R1);
+  wt1_TempC = Thermistor(wt1_pin,T_CELSIUS,wt1_beta,wt1_T0,wt1_R0,wt1_R1);
 
+  if(wt1_TempC > 105){
+    wt1_TAH = 1;
+  }
+  else{
+    wt1_TAH = 0;
+  }
 
+  //tag: ot1
+  ot1_TempC = Thermistor(ot1_pin,T_CELSIUS,ot1_beta,ot1_T0,ot1_R0,ot1_R1);
 
-if(wt1_TempC > 105){
-  wt1_TAH = 1;
+  if(ot1_TempC > 105){
+    ot1_TAH = 1;
+  }
+  else{
+    ot1_TAH = 0;
+  }
 }
-else{ wt1_TAH = 0;
+void level(int num) {
+  int sensorValue1 = analogRead(fl1_pin);
+  int sensorValue2 = analogRead(fl2_pin);
+  fl1 = map(sensorValue1, fl1_LRV, fl1_URV, 0, 100);
+  fl2 = map(sensorValue2, fl2_LRV, fl2_URV, 0, 100);
+  if (fl1 < 0) {
+    fl1 = 0;
+  }
+  if (fl2 < 0) {
+    fl2 = 0;
+  }
+  if (fl1 > 100) {
+    fl1 = 100;
+  }
+  if (fl2 > 100) {
+    fl2 = 100;
+  }
 }
-}
-
 void myDisplay(int num) {
 //battery voltage alarm
  if(ebv1_voltsHH ==1){
@@ -247,7 +330,12 @@ void serialPrint(int num) {
   Serial.print("Engine Water Temp: ");
   Serial.print(wt1_TempC);
   Serial.println("C");
-
+  //
+  //Oil Temp Sensor wt1
+  //
+  Serial.print("Engine Oil Temp: ");
+  Serial.print(ot1_TempC);
+  Serial.println("C");
 
   // Battery Voltage Alarm
  if(ebv1_voltsHH ==1){
