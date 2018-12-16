@@ -94,9 +94,9 @@ float Thermistor(int AnalogInputNumber,int OutputUnit,float B,float T0,float R0,
 //thermistor template ↑
 
 //high alarm template
-float highAlarm(int input, float alarmValue){
+float highAlarm(int input, float alarmSP){
   float A;
-  if (input >= alarmValue) {
+  if (input >= alarmSP) {
     A = 1;
   }
   else {
@@ -107,9 +107,9 @@ float highAlarm(int input, float alarmValue){
 //high alarm template ↑
 
 //low alarm template
-float lowAlarm(int input, float alarmValue){
+float lowAlarm(int input, float alarmSP){
   float A;
-  if (input <= alarmValue) {
+  if (input <= alarmSP) {
     A = 1;
   }
   else {
@@ -133,7 +133,8 @@ float wt1_RT1 = 291.5; // [ohms]  resistance for T1
 float wt1_RT2 = 22.4;  // [ohms]   resistance for T2
 float wt1_beta = 0.0;  // initial parameters [K]
 float wt1_TempC = 0.0; // variable output
-int wt1_TAH = 0;
+int wt1_TAH = 0;       //0 = healthy, 1 = alarm
+float wt1_TAH_SP = 105;   //voltage alarm high setpoint
 // ↑
 
 /* ↓
@@ -152,6 +153,7 @@ float ot1_RT2 = 22.4;  // [ohms]   resistance for T2
 float ot1_beta = 0.0;  // initial parameters [K]
 float ot1_TempC = 0.0; // variable output
 int ot1_TAH = 0;
+float ot1_TAH_SP = 105;   //voltage alarm high setpoint
 // ↑
 
 // for display ↓===========================
@@ -277,22 +279,13 @@ void temperature(int num) {
   //tag: wt1
   wt1_TempC = Thermistor(wt1_pin,T_CELSIUS,wt1_beta,wt1_T0,wt1_R0,wt1_R1);
 
-  if(wt1_TempC > 105){
-    wt1_TAH = 1;
-  }
-  else{
-    wt1_TAH = 0;
-  }
+  wt1_TAH = highAlarm(wt1_TempC, wt1_TAH_SP) // 0 = healthy, 1 = alarm
 
   //tag: ot1
   ot1_TempC = Thermistor(ot1_pin,T_CELSIUS,ot1_beta,ot1_T0,ot1_R0,ot1_R1);
 
-  if(ot1_TempC > 105){
-    ot1_TAH = 1;
-  }
-  else{
-    ot1_TAH = 0;
-  }
+  ot1_TAH = highAlarm(ot1_TempC, ot1_TAH_SP) // 0 = healthy, 1 = alarm
+
 }
 void level(int num) {
   int sensorValue1 = analogRead(fl1_pin);
