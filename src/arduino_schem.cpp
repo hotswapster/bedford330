@@ -168,12 +168,15 @@ int fl2_URV = 950; //counts on input at 100% level
 //Oil and Brake pressure
 int op1;
 int bp1;
-
 //Pressure calibration
-int op1_LRV = 200; //counts on input at 0% level
-int op1_URV = 950; //counts on input at 100% level
-int bp1_LRV = 200; //counts on input at 0% level
-int bp1_URV = 950; //counts on input at 100% level
+int op1_LRV = 200;  //counts on input at 0% level
+int op1_URV = 950;  //counts on input at 100% level
+int op1_span = 5;   //URV in pressure units
+String op1_units = "bar";
+int bp1_LRV = 200;  //counts on input at 0% level
+int bp1_URV = 950;  //counts on input at 100% level
+int bp1_span = 10;  //URV in pressure units
+String bp1_units = "bar";
 
 void setup() {
 
@@ -284,19 +287,19 @@ void level(int num) {
 void pressure(int num) {
   int sensorValue3 = analogRead(op1_pin);
   int sensorValue4 = analogRead(bp1_pin);
-  op1 = map(sensorValue3, op1_LRV, op1_URV, 0, 100); //assumes linear sensor
-  bp1 = map(sensorValue4, bp1_LRV, bp1_URV, 0, 100); //assumes linear sensor
+  op1 = map(sensorValue3, op1_LRV, op1_URV, 0, op1_span); //assumes linear sensor
+  bp1 = map(sensorValue4, bp1_LRV, bp1_URV, 0, bp1_span); //assumes linear sensor
   if (op1 < 0) {
     op1 = 0;
   }
   if (bp1 < 0) {
     bp1 = 0;
   }
-  if (op1 > 100) {
-    op1 = 100;
+  if (op1 > op1_span) {
+    op1 = op1_span;
   }
-  if (bp1 > 100) {
-    bp1 = 100;
+  if (bp1 > bp1_span) {
+    bp1 = bp1_span;
   }
 }
 void myDisplay(int num) {
@@ -379,6 +382,16 @@ void serialPrint(int num) {
   Serial.print("Diesel Tank 2: ");
   Serial.print(fl1);
   Serial.println("%");
+  //Engine Oil Pressure op1
+  //
+  Serial.print("Engine Oil Pressure: ");
+  Serial.print(op1);
+  Serial.println(op1_units);
+  //Brake Pressure bp1
+  //
+  Serial.print("Brake Pressure: ");
+  Serial.print(bp1);
+  Serial.println(bp1_units);
 
   // Battery Voltage Alarm
  if(ebv1_voltsHH ==1){
@@ -386,7 +399,8 @@ void serialPrint(int num) {
  }
  else{
      Serial.print("Battery volts: ");
-     Serial.println(ebv1_volts);
+     Serial.print(ebv1_volts);
+     Serial.println("volts");
  }
  Serial.println("");
  delay(800);
