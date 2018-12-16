@@ -61,9 +61,10 @@ float ebv1_VAL_SP = 10.7;   //voltage alarm low setpoint
 
 //thermistor template ↓
 enum {
-  T_KELVIN=0,
-  T_CELSIUS,
-};
+  KELVIN=0,
+  CELSIUS,
+  FAHRENHEIT,
+  };
 
 /* Temperature function inputs
 1.AnalogInputNumber - analog input to read from
@@ -74,16 +75,19 @@ enum {
 6. Your balance resistor resistance in ohms
 ↑*/
 
-float Thermistor(int AnalogInputNumber,int OutputUnit,float B,float T0,float R0,float R_Balance){
+float Thermistor(int AnalogInputNumber,int displayUnit,float B,float T0,float R0,float R_Balance){
   float R,T;
 
   R=(R_Balance*((float(analogRead(AnalogInputNumber)))/(1024.0f-1.0f)))*(Aref/ebv1_volts); //required correction for use of different voltage references
 
   T=1.0f/(1.0f/T0+(1.0f/B)*log(R/R0));
 
-  switch(OutputUnit) {
-    case T_CELSIUS :
+  switch(displayUnit) {
+    case CELSIUS :
       T-=273.15f;
+    break;
+    case FAHRENHEIT :
+    T=9.0f*(T-273.15f)/5.0f+32.0f;
     break;
     default:
     break;
@@ -119,6 +123,73 @@ float lowAlarm(int input, float alarmSP){
 }
 //high alarm template ↑
 
+/* Level template - linearLevel
+Inputs:
+  1. pin assignment
+  2. unit to display the level in [mm, inches, %]
+  3. input count for LRV calibrataion
+  4. input count for URV calibrataion
+  5. instrument calibrated span in engineering units
+  6. instrument calibrated engineering units
+  */
+float linearLevel(byte pin, int LRV, int URV, int span) {
+  float L = map(analogRead(pin), LRV, URV, 0, 100);
+
+  if (L < 0) {
+     L = 0;
+  };
+  if (L > 100) {
+    L = 100;
+  };
+
+  /* to work out later
+  switch(displayUnit) {
+
+    case MM :
+      if (calUnits == "mm") {
+        L = span * (L/100);
+      }
+      if (calUnits == "inches") {
+        L = span * (L*100) / 25.4;
+      }
+      else L = L;
+      }
+    break;
+    case INCHES :
+    if (calUnits == "inches") {
+      L = span * (L/100);
+    }
+    if (calUnits == "mm") {
+      L = span * (L*100) * 25.4;
+    }
+    else L = L;
+    }
+    break;
+    default:
+    break;
+*/
+    return L;
+}
+
+/* Pressure template - linearPressure
+Inputs:
+  1. pin assignment
+  2. input count for LRV calibrataion
+  3. input count for URV calibrataion
+  4. instrument calibrated span in engineering units
+  */
+float linearPressure(byte pin, int LRV, int URV, int span) {
+  float P = map(analogRead(pin), LRV, URV, 0, span);
+
+  if (P < 0) {
+     P = 0;
+  };
+  if (P > span) {
+    P = span;
+  };
+    return P;
+}
+
 /* ↓ tag:wt1 | description: Engine Water Temperature
 functional description: Voltage divider to measure the resistance of the sensor
 note: 314 ohms is maximum measured capability */
@@ -133,8 +204,9 @@ float wt1_RT1 = 291.5; // [ohms]  resistance for T1
 float wt1_RT2 = 22.4;  // [ohms]   resistance for T2
 float wt1_beta = 0.0;  // initial parameters [K]
 float wt1_TempC = 0.0; // variable output
+//alarm holding and setpoint
 int wt1_TAH = 0;       //0 = healthy, 1 = alarm
-float wt1_TAH_SP = 105;   //voltage alarm high setpoint
+float wt1_TAH_SP = 105;   // alarm high setpoint
 // ↑
 
 /* ↓
@@ -152,8 +224,9 @@ float ot1_RT1 = 291.5; // [ohms]  resistance for T1
 float ot1_RT2 = 22.4;  // [ohms]   resistance for T2
 float ot1_beta = 0.0;  // initial parameters [K]
 float ot1_TempC = 0.0; // variable output
+//alarm holding and setpoint
 int ot1_TAH = 0;
-float ot1_TAH_SP = 105;   //voltage alarm high setpoint
+float ot1_TAH_SP = 105;   // alarm high setpoint
 // ↑
 
 // for display ↓===========================
@@ -195,8 +268,12 @@ float fl2;
 //Fuel calibration
 int fl1_LRV = 200; //counts on input at 0% level
 int fl1_URV = 950; //counts on input at 100% level
+int fl1_span = 95; //span in engineering units
+String fl1_units = "Litres"; //engineering units
 int fl2_LRV = 200; //counts on input at 0% level
 int fl2_URV = 950; //counts on input at 100% level
+int fl2_span = 100; //span in engineering units
+String fl2_units = "Litres"; //engineering units
 
 //Oil and Brake pressure
 float op1;
@@ -277,33 +354,18 @@ void batteryV(int num) {
 }
 void temperature(int num) {
   //tag: wt1
-  wt1_TempC = Thermistor(wt1_pin,T_CELSIUS,wt1_beta,wt1_T0,wt1_R0,wt1_R1);
+  wt1_TempC = Thermistor(wt1_pin,CELSIUS,wt1_beta,wt1_T0,wt1_R0,wt1_R1);
 
-  wt1_TAH = highAlarm(wt1_TempC, wt1_TAH_SP) // 0 = healthy, 1 = alarm
+  wt1_TAH = highAlarm(wt1_TempC, wt1_TAH_SP); // 0 = healthy, 1 = alarm
 
   //tag: ot1
-  ot1_TempC = Thermistor(ot1_pin,T_CELSIUS,ot1_beta,ot1_T0,ot1_R0,ot1_R1);
+  ot1_TempC = Thermistor(ot1_pin,CELSIUS,ot1_beta,ot1_T0,ot1_R0,ot1_R1);
 
-  ot1_TAH = highAlarm(ot1_TempC, ot1_TAH_SP) // 0 = healthy, 1 = alarm
-
+  ot1_TAH = highAlarm(ot1_TempC, ot1_TAH_SP); // 0 = healthy, 1 = alarm
 }
 void level(int num) {
-  int sensorValue1 = analogRead(fl1_pin);
-  int sensorValue2 = analogRead(fl2_pin);
-  fl1 = map(sensorValue1, fl1_LRV, fl1_URV, 0, 100); //assumes linear sensor
-  fl2 = map(sensorValue2, fl2_LRV, fl2_URV, 0, 100); //assumes linear sensor
-  if (fl1 < 0) {
-    fl1 = 0;
-  }
-  if (fl2 < 0) {
-    fl2 = 0;
-  }
-  if (fl1 > 100) {
-    fl1 = 100;
-  }
-  if (fl2 > 100) {
-    fl2 = 100;
-  }
+  fl1 = linearLevel(fl1_pin, fl1_LRV, fl1_URV, fl1_span);
+  fl2 = linearLevel(fl2_pin, fl2_LRV, fl2_URV, fl2_span);
 }
 void pressure(int num) {
   int sensorValue3 = analogRead(op1_pin);
@@ -427,5 +489,5 @@ void serialPrint(int num) {
  delay(800);
 }
 void alarms(int num) {
-
+delay(10);
 }
