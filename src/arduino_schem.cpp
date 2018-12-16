@@ -7,35 +7,39 @@ void level(int num);
 void pressure(int num);
 void myDisplay(int num);
 void serialPrint(int num);
-
+void alarms(int num);
 
 String myVersion = "0.01";
 String authour = "J. Bracken";
 
 //analog input pin assignment
-const byte ebv1_pin = A9; //Engine Battery Voltage
-const byte wt1_pin = A13;  //Engine water temp
-const byte ot1_pin = A14; //Engine oil temp
-const byte fl1_pin = A12; //Fuel Tank 1 level
-const byte fl2_pin = A11; //Fuel Tank 2 level
-const byte bp1_pin = A10; //Brake Air Pressure Reservior
-const byte op1_pin = A15; //Engine oil pressure
+  const byte ebv1_pin = A9; //Engine Battery Voltage
+  const byte wt1_pin = A13;  //Engine water temp
+  const byte ot1_pin = A14; //Engine oil temp
+  const byte fl1_pin = A12; //Fuel Tank 1 level
+  const byte fl2_pin = A11; //Fuel Tank 2 level
+  const byte bp1_pin = A10; //Brake Air Pressure Reservior
+  const byte op1_pin = A15; //Engine oil pressure
 
 //analog output pin assignment
-const byte wg1_pin = A7; //Water Gauge Dash
-const byte fg1_pin = A8; //Fuel Gauge Dash
+  const byte wg1_pin = A7; //Water Gauge Dash
+  const byte fg1_pin = A8; //Fuel Gauge Dash
 
 //high speed digital input pin assignment
-const byte rs1_pin = 2; //Road speed
-const byte es1_pin = 3; //Engine Speed
+  const byte rs1_pin = 2; //Road speed
+  const byte es1_pin = 3; //Engine Speed
 
 //digital input pin assignment
-const byte opl1_pin = 24; //Oil P switch input
-const byte bpl1_pin = 25; //Brake Pressure Low switch
+  const byte opl1_pin = 24; //Oil P switch input
+  const byte bpl1_pin = 25; //Brake Pressure Low switch
 
 //digital output pin assignment
-const byte dl1_pin = 22; //Oil Light Dash
-const byte dl2_pin = 23; //Other dash light
+  const byte dl1_pin = 22; //Oil Light Dash
+  const byte dl2_pin = 23; //Other dash light
+
+
+
+
 
 
 /* ↓
@@ -43,14 +47,17 @@ tag: ebv1 | description: Engine Battery Voltage
 functional description: 0 - ~16volt voltmeter uses the stable internal 1.1volt reference. 6k8 resistor from A0 to ground, and 100k resistor from A0 to +batt 100n capacitor from A0 to ground for stable readings
 */
 
-float Aref = 1.073;       // ***calibrate battery voltage here*** | change this to the actual Aref voltage of Arduino
-unsigned int ebv1_total;       // can hold max 64 readings
-float ebv1_R1 = 99080.0;  //value of large volt divider resistor for engine battery voltage
-float ebv1_R2 = 6760.0;   //value of Small volt divider resistor for engine battery voltage
+float Aref = 1.073;         // ***calibrate battery voltage here*** | change this to the actual Aref voltage of Arduino
+unsigned int ebv1_total;    // can hold max 64 readings
+float ebv1_R1 = 99080.0;    //value of large volt divider resistor for engine battery voltage
+float ebv1_R2 = 6760.0;     //value of Small volt divider resistor for engine battery voltage
 float ebv1_resRatio = ((ebv1_R1 + ebv1_R2) / (ebv1_R2)); //ratio of voltage divider
-float ebv1_volts;         // converted to volt
-int ebv1_voltsHH = 0;     //0 = healthy, 1 = alarm
-// ↑
+float ebv1_volts;           // converted to volt
+int ebv1_VAH = 0;           //0 = healthy, 1 = alarm
+float ebv1_VAH_SP = 14.7;   //voltage alarm high setpoint
+int ebv1_VAL = 0;           //0 = healthy, 1 = alarm
+float ebv1_VAL_SP = 10.7;   //voltage alarm low setpoint
+
 
 //thermistor template ↓
 enum {
@@ -86,7 +93,31 @@ float Thermistor(int AnalogInputNumber,int OutputUnit,float B,float T0,float R0,
 }
 //thermistor template ↑
 
+//high alarm template
+float highAlarm(int input, float alarmValue){
+  float A;
+  if (input >= alarmValue) {
+    A = 1;
+  }
+  else {
+    A = 0;
+  }
+  return A;
+}
+//high alarm template ↑
 
+//low alarm template
+float lowAlarm(int input, float alarmValue){
+  float A;
+  if (input <= alarmValue) {
+    A = 1;
+  }
+  else {
+    A = 0;
+  }
+  return A;
+}
+//high alarm template ↑
 
 /* ↓ tag:wt1 | description: Engine Water Temperature
 functional description: Voltage divider to measure the resistance of the sensor
@@ -102,7 +133,7 @@ float wt1_RT1 = 291.5; // [ohms]  resistance for T1
 float wt1_RT2 = 22.4;  // [ohms]   resistance for T2
 float wt1_beta = 0.0;  // initial parameters [K]
 float wt1_TempC = 0.0; // variable output
-int wt1_TAH =0;
+int wt1_TAH = 0;
 // ↑
 
 /* ↓
@@ -120,7 +151,7 @@ float ot1_RT1 = 291.5; // [ohms]  resistance for T1
 float ot1_RT2 = 22.4;  // [ohms]   resistance for T2
 float ot1_beta = 0.0;  // initial parameters [K]
 float ot1_TempC = 0.0; // variable output
-int ot1_TAH =0;
+int ot1_TAH = 0;
 // ↑
 
 // for display ↓===========================
@@ -226,6 +257,7 @@ void loop() {
   pressure(4);
   myDisplay(5);
   serialPrint(6);
+  alarms(7);
   delay(2000);
 }
 
@@ -235,13 +267,9 @@ void batteryV(int num) {
   }
   ebv1_volts = (ebv1_total / 64) * ebv1_resRatio * Aref / 1024 ; // convert readings to volt
 
+  ebv1_VAL = lowAlarm(ebv1_volts, ebv1_VAL_SP);
+  ebv1_VAH = highAlarm(ebv1_volts, ebv1_VAH_SP);
 
-  if (ebv1_total == (1023 * 64)) {
-    ebv1_voltsHH = 1;
-  }
-  else {
-    ebv1_voltsHH = 0;
-  }
   ebv1_total = 0; // reset value
   delay(1000); // one second between measurements
 }
@@ -304,7 +332,7 @@ void pressure(int num) {
 }
 void myDisplay(int num) {
 //battery voltage alarm
- if(ebv1_voltsHH ==1){
+ if(ebv1_VAH ==1){
     lcd.clear();
     lcd.setCursor(2, 0);
     lcd.print("Voltage too");
@@ -363,38 +391,38 @@ void serialPrint(int num) {
   //Water Temp Sensor wt1
   //
   Serial.print("Engine Water Temp: ");
-  Serial.print(wt1_TempC);
+  Serial.print(wt1_TempC, 1);
   Serial.println("C");
   //
   //Oil Temp Sensor ot1
   //
   Serial.print("Engine Oil Temp: ");
-  Serial.print(ot1_TempC);
+  Serial.print(ot1_TempC, 1);
   Serial.println("C");
 
   //Fuel Level Tank 1 fl1
   //
   Serial.print("Diesel Tank 1: ");
-  Serial.print(fl1);
+  Serial.print(fl1, 0); //0 decimal places
   Serial.println("%");
   //Fuel Level Tank 2 fl2
   //
   Serial.print("Diesel Tank 2: ");
-  Serial.print(fl1);
+  Serial.print(fl2, 0); //0 decimal places
   Serial.println("%");
   //Engine Oil Pressure op1
   //
   Serial.print("Engine Oil Pressure: ");
-  Serial.print(op1);
+  Serial.print(op1, 1);
   Serial.println(op1_units);
   //Brake Pressure bp1
   //
   Serial.print("Brake Pressure: ");
-  Serial.print(bp1);
+  Serial.print(bp1, 1);
   Serial.println(bp1_units);
 
   // Battery Voltage Alarm
- if(ebv1_voltsHH ==1){
+ if(ebv1_VAH ==1){
     Serial.println("Voltage High Alarm");
  }
  else{
@@ -404,4 +432,7 @@ void serialPrint(int num) {
  }
  Serial.println("");
  delay(800);
+}
+void alarms(int num) {
+
 }
