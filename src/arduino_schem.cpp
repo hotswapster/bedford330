@@ -26,7 +26,7 @@ float ebv1_volts;         // converted to volt
 int ebv1_voltsHH = 0;     //0 = healthy, 1 = alarm
 // ↑
 
-//attempting to use therminstor template ↓
+//thermistor template ↓
 enum {
   T_KELVIN=0,
   T_CELSIUS,
@@ -41,14 +41,10 @@ enum {
 6. Your balance resistor resistance in ohms
 ↑*/
 
-float Temperature(int AnalogInputNumber,int OutputUnit,float B,float T0,float R0,float R_Balance)
-{
+float Temperature(int AnalogInputNumber,int OutputUnit,float B,float T0,float R0,float R_Balance){
   float R,T;
 
-
-  R=(R_Balance*((float(analogRead(AnalogInputNumber)))/(1024.0f-1.0f)))*(Aref/ebv1_volts);
-  Serial.print("Smart resistance: ");
-  Serial.println(R);
+  R=(R_Balance*((float(analogRead(AnalogInputNumber)))/(1024.0f-1.0f)))*(Aref/ebv1_volts); //required correction for use of different voltage references
 
   T=1.0f/(1.0f/T0+(1.0f/B)*log(R/R0));
 
@@ -62,29 +58,23 @@ float Temperature(int AnalogInputNumber,int OutputUnit,float B,float T0,float R0
 
   return T;
 }
-
+//thermistor template ↑
 
 
 /* ↓
 tag:wt1 | description: Engine Water Temperature
 functional description: Voltage divider to measure the resistance of the sensor
 note: 314 ohms is maximum measured capability */
-int wt1_raw = 0;
-float wt1_Vout = 0;
-float wt1_R1 = 3292;
-float wt1_R2 = 0;
-float wt1_buffer = 0;
+float wt1_R1 = 3292; //actual resistance of resistor between 12v line and the sensor
 //--NTC calibration
 float wt1_R0 = 197.3;  // value of rct in T0 [ohm] (Choose midpoint on curve near operating range or Datasheet correction temperature)
-float wt1_T0 = (273.15 + 50); // use T0 in Kelvin [K]
+float wt1_T0 = (273.15 + 50); // datasheet temperature at R0 (above)
 // use the datasheet to get this data.
 float wt1_T1 = (273.15 + 40);    // [K] in datasheet 0º C (fill in RHS number with LRV degrees C)
 float wt1_T2 = (273.15 + 120);    // [K] in datasheet 100° C (fill in RHS number with URV degrees C)
 float wt1_RT1 = 291.5; // [ohms]  resistance for T1
 float wt1_RT2 = 22.4;  // [ohms]   resistance for T2
 float wt1_beta = 0.0;  // initial parameters [K]
-float wt1_Rinf = 0.0;  // initial parameters [ohm]
-float wt1_TempK = 0.0; // variable output
 float wt1_TempC = 0.0; // variable output
 int wt1_TAH =0;
 // ↑
@@ -150,9 +140,10 @@ void setup() {
 
 
   //==for ntc thermistor correction ↓
-  wt1_beta = (log(wt1_RT1 / wt1_RT2)) / ((1 / wt1_T1) - (1 / wt1_T2));
-  wt1_Rinf = wt1_R0 * exp(-wt1_beta / wt1_T0);
-  //==for ntc thermistor correction ↑
+  // if beta is known, comment out calculation line and uncomment from datasheet line
+  wt1_beta = (log(wt1_RT1 / wt1_RT2)) / ((1 / wt1_T1) - (1 / wt1_T2)); //by calculation
+  //wt1_beta = 0; //from datasheet
+
 }
 
 void loop() {
@@ -182,31 +173,9 @@ void batteryV(int num) {
 
 void waterTemp(int num) {
   //tag: wt1
-  wt1_raw = analogRead(wt1_pin);
-  if (wt1_raw)
-  {
-    wt1_buffer = wt1_raw * Aref;
-    wt1_Vout = (wt1_buffer) / 1024.0;
-    wt1_buffer = (ebv1_volts / wt1_Vout);
-    wt1_R2 = wt1_R1 / wt1_buffer;
-  }
+  wt1_TempC = Temperature(wt1_pin,T_CELSIUS,wt1_beta,wt1_T0,wt1_R0,wt1_R1);
 
-  //calculate and print water temperature↓
-  wt1_TempK = (wt1_beta / log(wt1_R2 / wt1_Rinf)); // calc for temperature
-  wt1_TempC = wt1_TempK - 273.15;
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Wtr T Old: ");
-  lcd.setCursor(12, 0);
-  lcd.print(wt1_TempC);
-  lcd.setCursor(0, 1);
-  lcd.print(Temperature(wt1_pin,T_CELSIUS,wt1_beta,wt1_T0,wt1_R0,wt1_R1));
-  Serial.print(wt1_TempC);
-  Serial.println("C from long");
-  Serial.print(Temperature(wt1_pin,T_CELSIUS,wt1_beta,wt1_T0,wt1_R0,wt1_R1));
-  Serial.println("C from template");
 
-  delay(1200);
 
 if(wt1_TempC > 105){
   wt1_TAH = 1;
@@ -272,23 +241,22 @@ void myDisplay(int num) {
 //}
 }
 void serialPrint(int num) {
-/*  Serial.print("wt1_Vout: ");
-  Serial.print(wt1_Vout);
-  Serial.println("volts");*/
   //
-  Serial.print("Long Resistance: ");
-  Serial.print(wt1_R2);
-  Serial.println("ohms");//Water Temp Sensor wt1
+  //Water Temp Sensor wt1
   //
-  Serial.println("");
+  Serial.print("Engine Water Temp: ");
+  Serial.print(wt1_TempC);
+  Serial.println("C");
 
 
   // Battery Voltage Alarm
  if(ebv1_voltsHH ==1){
     Serial.println("Voltage High Alarm");
  }
-// else{
-//     Serial.print("Battery volts: ");
-  //   Serial.println(ebv1_volts);
-//}
+ else{
+     Serial.print("Battery volts: ");
+     Serial.println(ebv1_volts);
+ }
+ Serial.println("");
+ delay(800);
 }
