@@ -122,6 +122,19 @@ String authour = "J. Bracken";
 }
   //low alarm template ↑
 
+//serial print template
+  String serialPrint(int DESC, float VAL, String UOM, int ALARM){
+  float floatValue = (VAL ,1);
+  Serial.println(DESC + ": " + 'floatValue' + ' ' + UOM);
+  if (ALARM == 1) {
+  Serial.println("*** " + DESC + 'ALARM ***');
+  } else {
+  Serial.println(' ');
+  }
+
+  }
+    //lserial print template ↑
+
 /* Level template - linearLevel
 Inputs:
   1. pin assignment
