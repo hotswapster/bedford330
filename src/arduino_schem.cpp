@@ -178,10 +178,10 @@ Inputs:
   3. input count for URV calibrataion
   4. instrument calibrated span in engineering units
   */
-float linearPressure(byte pin, int LRV, int URV, int SPAN) {
+float linearPressure(byte pin, int LRV, int URV, int SPAN, String CALUNITS, String DISPLAYUNITS) {
   float P = map(analogRead(pin), LRV, URV, 0, SPAN);
 
-  //make read pressure a normal value sensible
+  //make value within limits
   if (P < 0) {
      P = 0;
   };
@@ -189,7 +189,41 @@ float linearPressure(byte pin, int LRV, int URV, int SPAN) {
     P = SPAN;
   };
 
+  //create different UOM
+  float KPA = 0;
+  float BAR = 0;
+  float PSI = 0;
+
+  //calculate pressure units
+  if (CALUNITS == "psi") {
+    KPA = P * 6.89;
+    PSI = P;
+    BAR = P / 14.7;
+  };
+  if (CALUNITS == "bar") {
+    KPA = P * 101.325;
+    PSI = P * 14.7;
+    BAR = P;
+  };
+  if (CALUNITS == "kPa") {
+    KPA = P;
+    PSI = P * 6.89;
+    BAR = P / 101.325;
+  };
+
+  //return unit selected
+  if (DISPLAYUNITS == "psi") {
+    P = PSI;
+  };
+  if (DISPLAYUNITS == "kPa") {
+    P = KPA;
+  }
+  if (DISPLAYUNITS == "bar") {
+    P = BAR;
+  }
+
     return P;
+
 }
 
 /* ↓ tag:wt1 | description: Engine Water Temperature
@@ -284,13 +318,13 @@ float bp1;
 int op1_LRV = 200;  //counts on input at 0% level
 int op1_URV = 950;  //counts on input at 100% level
 int op1_span = 5;   //URV in pressure units
-String op1_calUnits = "bar"; //units from instrument calibration
-String op1_displayUnits = "bar"; //units to use in program
+String op1_calUnits = "bar"; //units from instrument calibration. psi, kPa or bar
+String op1_displayUnits = "bar"; //units to use in program. psi, kPa or bar
 int bp1_LRV = 200;  //counts on input at 0% level
 int bp1_URV = 950;  //counts on input at 100% level
 int bp1_span = 10;  //URV in pressure units
-String bp1_calUnits = "bar"; //units from instrument calibration
-String bp1_displayUnits = "bar"; //units to use in program
+String bp1_calUnits = "bar"; //units from instrument calibration. psi, kPa or bar
+String bp1_displayUnits = "bar"; //units to use in program. psi, kPa or bar
 
 void setup() {
 
@@ -372,8 +406,8 @@ void level(int num) {
   fl2 = linearLevel(fl2_pin,fl2_LRV,fl2_URV,fl2_span);
 }
 void pressure(int num) {
-  op1 = linearPressure(op1_pin,op1_LRV,op1_URV,op1_span);
-  bp1 = linearPressure(bp1_pin,bp1_LRV,bp1_URV,bp1_span);
+  op1 = linearPressure(op1_pin,op1_LRV,op1_URV,op1_span,op1_calUnits,op1_displayUnits);
+  bp1 = linearPressure(bp1_pin,bp1_LRV,bp1_URV,bp1_span,bp1_calUnits,bp1_displayUnits);
 }
 void myDisplay(int num) {
 //battery voltage alarm
