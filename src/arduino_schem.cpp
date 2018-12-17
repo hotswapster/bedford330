@@ -126,57 +126,65 @@ float lowAlarm(int input, float alarmSP){
 /* Level template - linearLevel
 Inputs:
   1. pin assignment
-  2. unit to display the level in [mm, inches, %]
   3. input count for LRV calibrataion
   4. input count for URV calibrataion
   5. instrument calibrated span in engineering units
   6. instrument calibrated engineering units
   */
-float linearLevel(byte pin, int LRV, int URV, int span) {
+float linearLevel(byte pin, int LRV, int URV, int SPAN, String CALUNITS, String DISPLAYUNITS) {
   float L = map(analogRead(pin), LRV, URV, 0, 100);
 
+  //make value within limits
   if (L < 0) {
      L = 0;
   };
-  if (L > 100) {
-    L = 100;
+  if (L > SPAN) {
+    L = SPAN;
   };
 
-  /* to work out later
-  switch(displayUnit) {
+  //create different UOM
+  float MM = 0;
+  float IN = 0;
+  float PERCENT = 0;
 
-    case MM :
-      if (calUnits == "mm") {
-        L = span * (L/100);
-      }
-      if (calUnits == "inches") {
-        L = span * (L*100) / 25.4;
-      }
-      else L = L;
-      }
-    break;
-    case INCHES :
-    if (calUnits == "inches") {
-      L = span * (L/100);
-    }
-    if (calUnits == "mm") {
-      L = span * (L*100) * 25.4;
-    }
-    else L = L;
-    }
-    break;
-    default:
-    break;
-*/
+  //calculate pressure units
+  if (CALUNITS == "mm") {
+    MM = L;
+    IN = L / 25.4;
+    PERCENT = L / SPAN;
+  };
+  if (CALUNITS == "inches") {
+    MM = L * 25.4;
+    IN = L;
+    PERCENT = L / SPAN;
+  };
+  if (CALUNITS == "percent") {
+    PERCENT = L;
+  };
+
+  //return unit selected
+  if (DISPLAYUNITS == "mm") {
+    L = MM;
+  };
+  if (DISPLAYUNITS == "inches") {
+    L = IN;
+  }
+  if (DISPLAYUNITS == "percent") {
+    L = L;
+  }
+
+
     return L;
 }
 
 /* Pressure template - linearPressure
 Inputs:
   1. pin assignment
-  2. input count for LRV calibrataion
-  3. input count for URV calibrataion
-  4. instrument calibrated span in engineering units
+  2. input count for LRV calibration
+  3. input count for URV calibration
+  4. instrument calibrated span in engineering units (e.g. 150)
+  5. engineering units of calibrated span (e.g. psi)
+  6. desired display/program engineering units (if 5. is in psi, 6. can be kPa)
   */
 float linearPressure(byte pin, int LRV, int URV, int SPAN, String CALUNITS, String DISPLAYUNITS) {
   float P = map(analogRead(pin), LRV, URV, 0, SPAN);
@@ -305,23 +313,25 @@ float fl2;
 int fl1_LRV = 200; //counts on input at 0% level
 int fl1_URV = 950; //counts on input at 100% level
 int fl1_span = 95; //span in engineering units
-String fl1_units = "Litres"; //engineering units
+String fl1_calUnits = "mm"; //engineering units - mm, inches or percent
+String fl1_displayUnits = "%"; //engineering units - mm, inches or percent
 int fl2_LRV = 200; //counts on input at 0% level
 int fl2_URV = 950; //counts on input at 100% level
 int fl2_span = 100; //span in engineering units
-String fl2_units = "Litres"; //engineering units
+String fl2_calUnits = "mm"; //engineering units - mm, inches or percent
+String fl2_displayUnits = "%"; //engineering units - mm, inches or percent
 
 //Oil and Brake pressure
 float op1;
 float bp1;
 //Pressure calibration - instrument information here
-int op1_LRV = 200;  //counts on input at 0% level
-int op1_URV = 950;  //counts on input at 100% level
+int op1_LRV = 200;  //counts on input at 0% pressure
+int op1_URV = 950;  //counts on input at 100% pressure
 int op1_span = 5;   //URV in pressure units
 String op1_calUnits = "bar"; //units from instrument calibration. psi, kPa or bar
 String op1_displayUnits = "bar"; //units to use in program. psi, kPa or bar
-int bp1_LRV = 200;  //counts on input at 0% level
-int bp1_URV = 950;  //counts on input at 100% level
+int bp1_LRV = 200;  //counts on input at 0% pressure
+int bp1_URV = 950;  //counts on input at 100% pressure
 int bp1_span = 10;  //URV in pressure units
 String bp1_calUnits = "bar"; //units from instrument calibration. psi, kPa or bar
 String bp1_displayUnits = "bar"; //units to use in program. psi, kPa or bar
@@ -402,13 +412,14 @@ void temperature(int num) {
   ot1_TAH = highAlarm(ot1_TempC, ot1_TAH_SP); // 0 = healthy, 1 = alarm
 }
 void level(int num) {
-  fl1 = linearLevel(fl1_pin,fl1_LRV,fl1_URV,fl1_span);
-  fl2 = linearLevel(fl2_pin,fl2_LRV,fl2_URV,fl2_span);
+  fl1 = linearLevel(fl1_pin,fl1_LRV,fl1_URV,fl1_span,fl1_calUnits,fl1_displayUnits);
+  fl2 = linearLevel(fl2_pin,fl2_LRV,fl2_URV,fl2_span,fl2_calUnits,fl2_displayUnits);
 }
 void pressure(int num) {
   op1 = linearPressure(op1_pin,op1_LRV,op1_URV,op1_span,op1_calUnits,op1_displayUnits);
   bp1 = linearPressure(bp1_pin,bp1_LRV,bp1_URV,bp1_span,bp1_calUnits,bp1_displayUnits);
 }
+
 void myDisplay(int num) {
 //battery voltage alarm
  if(ebv1_VAH ==1){
