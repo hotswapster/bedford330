@@ -178,15 +178,17 @@ Inputs:
   3. input count for URV calibrataion
   4. instrument calibrated span in engineering units
   */
-float linearPressure(byte pin, int LRV, int URV, int span) {
-  float P = map(analogRead(pin), LRV, URV, 0, span);
+float linearPressure(byte pin, int LRV, int URV, int SPAN) {
+  float P = map(analogRead(pin), LRV, URV, 0, SPAN);
 
+  //make read pressure a normal value sensible
   if (P < 0) {
      P = 0;
   };
-  if (P > span) {
-    P = span;
+  if (P > SPAN) {
+    P = SPAN;
   };
+
     return P;
 }
 
@@ -265,7 +267,7 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 //Fuel level
 float fl1;
 float fl2;
-//Fuel calibration
+//Fuel calibration - put instrument information here
 int fl1_LRV = 200; //counts on input at 0% level
 int fl1_URV = 950; //counts on input at 100% level
 int fl1_span = 95; //span in engineering units
@@ -278,15 +280,17 @@ String fl2_units = "Litres"; //engineering units
 //Oil and Brake pressure
 float op1;
 float bp1;
-//Pressure calibration
+//Pressure calibration - instrument information here
 int op1_LRV = 200;  //counts on input at 0% level
 int op1_URV = 950;  //counts on input at 100% level
 int op1_span = 5;   //URV in pressure units
-String op1_units = "bar";
+String op1_calUnits = "bar"; //units from instrument calibration
+String op1_displayUnits = "bar"; //units to use in program
 int bp1_LRV = 200;  //counts on input at 0% level
 int bp1_URV = 950;  //counts on input at 100% level
 int bp1_span = 10;  //URV in pressure units
-String bp1_units = "bar";
+String bp1_calUnits = "bar"; //units from instrument calibration
+String bp1_displayUnits = "bar"; //units to use in program
 
 void setup() {
 
@@ -364,26 +368,12 @@ void temperature(int num) {
   ot1_TAH = highAlarm(ot1_TempC, ot1_TAH_SP); // 0 = healthy, 1 = alarm
 }
 void level(int num) {
-  fl1 = linearLevel(fl1_pin, fl1_LRV, fl1_URV, fl1_span);
-  fl2 = linearLevel(fl2_pin, fl2_LRV, fl2_URV, fl2_span);
+  fl1 = linearLevel(fl1_pin,fl1_LRV,fl1_URV,fl1_span);
+  fl2 = linearLevel(fl2_pin,fl2_LRV,fl2_URV,fl2_span);
 }
 void pressure(int num) {
-  int sensorValue3 = analogRead(op1_pin);
-  int sensorValue4 = analogRead(bp1_pin);
-  op1 = map(sensorValue3, op1_LRV, op1_URV, 0, op1_span); //assumes linear sensor
-  bp1 = map(sensorValue4, bp1_LRV, bp1_URV, 0, bp1_span); //assumes linear sensor
-  if (op1 < 0) {
-    op1 = 0;
-  }
-  if (bp1 < 0) {
-    bp1 = 0;
-  }
-  if (op1 > op1_span) {
-    op1 = op1_span;
-  }
-  if (bp1 > bp1_span) {
-    bp1 = bp1_span;
-  }
+  op1 = linearPressure(op1_pin,op1_LRV,op1_URV,op1_span);
+  bp1 = linearPressure(bp1_pin,bp1_LRV,bp1_URV,bp1_span);
 }
 void myDisplay(int num) {
 //battery voltage alarm
@@ -469,12 +459,12 @@ void serialPrint(int num) {
   //
   Serial.print("Engine Oil Pressure: ");
   Serial.print(op1, 1);
-  Serial.println(op1_units);
+  Serial.println(op1_displayUnits);
   //Brake Pressure bp1
   //
   Serial.print("Brake Pressure: ");
   Serial.print(bp1, 1);
-  Serial.println(bp1_units);
+  Serial.println(bp1_displayUnits);
 
   // Battery Voltage Alarm
  if(ebv1_VAH ==1){
