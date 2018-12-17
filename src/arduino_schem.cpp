@@ -56,6 +56,8 @@ String authour = "J. Bracken";
   float ebv1_VAH_SP = 14.7;   //voltage alarm high setpoint
   int ebv1_VAL = 0;           //0 = healthy, 1 = alarm
   float ebv1_VAL_SP = 10.7;   //voltage alarm low setpoint
+  String ebv1_desc = "Engine Battery Volts"; //description of tag
+  String ebv1_displayUnits = "volts"; //engineering units to display in
 
 
 //thermistor template ↓
@@ -123,15 +125,26 @@ String authour = "J. Bracken";
   //low alarm template ↑
 
 //serial print template
-  String serialPrint(int DESC, float VAL, String UOM, int ALARM){
-  float floatValue = (VAL ,1);
-  Serial.println(DESC + ": " + 'floatValue' + ' ' + UOM);
-  if (ALARM == 1) {
-  Serial.println("*** " + DESC + 'ALARM ***');
-  } else {
-  Serial.println(' ');
-  }
+/* Serial functino Inputs
+1. description
+2. value
+3. unit of measure (display units)
+4. alarm bit */
 
+  float serialPrinter(String DESC, float VAL, String UOM, int ALARM){
+    Serial.print(DESC);
+    Serial.print(" ");
+    Serial.print(VAL);
+    Serial.print(" ");
+    Serial.println(UOM);
+    if (ALARM == 1) {
+      Serial.print("*** ");
+      Serial.print(DESC);
+      Serial.println("ALARM ***");
+    } else {
+      Serial.println(' ');
+    }
+  return 1.0;
   }
     //lserial print template ↑
 
@@ -509,6 +522,8 @@ void serialPrint(int num) {
   //
   //Water Temp Sensor wt1
   //
+  serialPrinter(ebv1_desc, ebv1_volts, ebv1_displayUnits, ebv1_VAL);//need to add an OR function for multiple alarms
+
   Serial.print("Engine Water Temp: ");
   Serial.print(wt1_TempC, 1);
   Serial.println("C");
