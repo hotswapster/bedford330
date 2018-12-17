@@ -42,40 +42,39 @@ String authour = "J. Bracken";
 
 
 
-/* ↓
-tag: ebv1 | description: Engine Battery Voltage
-functional description: 0 - ~16volt voltmeter uses the stable internal 1.1volt reference. 6k8 resistor from A0 to ground, and 100k resistor from A0 to +batt 100n capacitor from A0 to ground for stable readings
-*/
+/* ↓ tag: ebv1 | description: Engine Battery Voltage
+  functional description: 0 - ~16volt voltmeter uses the stable internal 1.1volt reference. 6k8 resistor from A0 to ground, and 100k resistor from A0 to +batt 100n capacitor from A0 to ground for stable readings
+  */
 
-float Aref = 1.073;         // ***calibrate battery voltage here*** | change this to the actual Aref voltage of Arduino
-unsigned int ebv1_total;    // can hold max 64 readings
-float ebv1_R1 = 99080.0;    //value of large volt divider resistor for engine battery voltage
-float ebv1_R2 = 6760.0;     //value of Small volt divider resistor for engine battery voltage
-float ebv1_resRatio = ((ebv1_R1 + ebv1_R2) / (ebv1_R2)); //ratio of voltage divider
-float ebv1_volts;           // converted to volt
-int ebv1_VAH = 0;           //0 = healthy, 1 = alarm
-float ebv1_VAH_SP = 14.7;   //voltage alarm high setpoint
-int ebv1_VAL = 0;           //0 = healthy, 1 = alarm
-float ebv1_VAL_SP = 10.7;   //voltage alarm low setpoint
+  float Aref = 1.073;         // ***calibrate battery voltage here*** | change this to the actual Aref voltage of Arduino
+  unsigned int ebv1_total;    // can hold max 64 readings
+  float ebv1_R1 = 99080.0;    //value of large volt divider resistor for engine battery voltage
+  float ebv1_R2 = 6760.0;     //value of Small volt divider resistor for engine battery voltage
+  float ebv1_resRatio = ((ebv1_R1 + ebv1_R2) / (ebv1_R2)); //ratio of voltage divider
+  float ebv1_volts;           // converted to volt
+  int ebv1_VAH = 0;           //0 = healthy, 1 = alarm
+  float ebv1_VAH_SP = 14.7;   //voltage alarm high setpoint
+  int ebv1_VAL = 0;           //0 = healthy, 1 = alarm
+  float ebv1_VAL_SP = 10.7;   //voltage alarm low setpoint
 
 
 //thermistor template ↓
-enum {
-  KELVIN=0,
-  CELSIUS,
-  FAHRENHEIT,
-  };
+  enum {
+    KELVIN=0,
+    CELSIUS,
+    FAHRENHEIT,
+    };
 
-/* Temperature function inputs
-1.AnalogInputNumber - analog input to read from
-2.OuputUnit - output in celsius, kelvin or fahrenheit
-3.Thermistor B parameter - found in datasheet
-4.Manufacturer T0 parameter - found in datasheet (kelvin)
-5. Manufacturer R0 parameter - found in datasheet (ohms)
-6. Your balance resistor resistance in ohms
-↑*/
+  /* Temperature function inputs
+  1.AnalogInputNumber - analog input to read from
+  2.OuputUnit - output in celsius, kelvin or fahrenheit
+  3.Thermistor B parameter - found in datasheet
+  4.Manufacturer T0 parameter - found in datasheet (kelvin)
+  5. Manufacturer R0 parameter - found in datasheet (ohms)
+  6. Your balance resistor resistance in ohms
+  ↑*/
 
-float Thermistor(int AnalogInputNumber,int displayUnit,float B,float T0,float R0,float R_Balance){
+  float Thermistor(int AnalogInputNumber,int displayUnit,float B,float T0,float R0,float R_Balance){
   float R,T;
 
   R=(R_Balance*((float(analogRead(AnalogInputNumber)))/(1024.0f-1.0f)))*(Aref/ebv1_volts); //required correction for use of different voltage references
@@ -95,10 +94,10 @@ float Thermistor(int AnalogInputNumber,int displayUnit,float B,float T0,float R0
 
   return T;
 }
-//thermistor template ↑
+  //thermistor template ↑
 
 //high alarm template
-float highAlarm(int input, float alarmSP){
+  float highAlarm(int input, float alarmSP){
   float A;
   if (input >= alarmSP) {
     A = 1;
@@ -108,10 +107,10 @@ float highAlarm(int input, float alarmSP){
   }
   return A;
 }
-//high alarm template ↑
+  //high alarm template ↑
 
 //low alarm template
-float lowAlarm(int input, float alarmSP){
+  float lowAlarm(int input, float alarmSP){
   float A;
   if (input <= alarmSP) {
     A = 1;
@@ -121,7 +120,7 @@ float lowAlarm(int input, float alarmSP){
   }
   return A;
 }
-//high alarm template ↑
+  //low alarm template ↑
 
 /* Level template - linearLevel
 Inputs:
@@ -131,7 +130,7 @@ Inputs:
   5. instrument calibrated span in engineering units
   6. instrument calibrated engineering units
   */
-float linearLevel(byte pin, int LRV, int URV, int SPAN, String CALUNITS, String DISPLAYUNITS) {
+  float linearLevel(byte pin, int LRV, int URV, int SPAN, String CALUNITS, String DISPLAYUNITS) {
   float L = map(analogRead(pin), LRV, URV, 0, 100);
 
   //make value within limits
@@ -187,7 +186,7 @@ Inputs:
   5. engineering units of calibrated span (e.g. psi)
   6. desired display/program engineering units (if 5. is in psi, 6. can be kPa)
   */
-float linearPressure(byte pin, int LRV, int URV, int SPAN, String CALUNITS, String DISPLAYUNITS) {
+  float linearPressure(byte pin, int LRV, int URV, int SPAN, String CALUNITS, String DISPLAYUNITS) {
   float P = map(analogRead(pin), LRV, URV, 0, SPAN);
 
   //make value within limits
@@ -236,50 +235,49 @@ float linearPressure(byte pin, int LRV, int URV, int SPAN, String CALUNITS, Stri
 }
 
 /* ↓ tag:wt1 | description: Engine Water Temperature
-functional description: Voltage divider to measure the resistance of the sensor
-note: 314 ohms is maximum measured capability */
-float wt1_R1 = 3292; //actual resistance of resistor between 12v line and the sensor
-//--NTC calibration
-float wt1_R0 = 197.3;  // value of rct in T0 [ohm] (Choose midpoint on curve near operating range or Datasheet correction temperature)
-float wt1_T0 = (273.15 + 50); // datasheet temperature at R0 (above)
-// use the datasheet to get this data.
-float wt1_T1 = (273.15 + 40);    // [K] in datasheet 0º C (fill in RHS number with LRV degrees C)
-float wt1_T2 = (273.15 + 120);    // [K] in datasheet 100° C (fill in RHS number with URV degrees C)
-float wt1_RT1 = 291.5; // [ohms]  resistance for T1
-float wt1_RT2 = 22.4;  // [ohms]   resistance for T2
-float wt1_beta = 0.0;  // initial parameters [K]
-float wt1_TempC = 0.0; // variable output
-//alarm holding and setpoint
-int wt1_TAH = 0;       //0 = healthy, 1 = alarm
-float wt1_TAH_SP = 105;   // alarm high setpoint
-// ↑
+  functional description: Voltage divider to measure the resistance of the sensor
+  note: 314 ohms is maximum measured capability */
+  float wt1_R1 = 3292; //actual resistance of resistor between 12v line and the sensor
+  //--NTC calibration
+  float wt1_R0 = 197.3;  // value of rct in T0 [ohm] (Choose midpoint on curve near operating range or Datasheet correction temperature)
+  float wt1_T0 = (273.15 + 50); // datasheet temperature at R0 (above)
+  // use the datasheet to get this data.
+  float wt1_T1 = (273.15 + 40);    // [K] in datasheet 0º C (fill in RHS number with LRV degrees C)
+  float wt1_T2 = (273.15 + 120);    // [K] in datasheet 100° C (fill in RHS number with URV degrees C)
+  float wt1_RT1 = 291.5; // [ohms]  resistance for T1
+  float wt1_RT2 = 22.4;  // [ohms]   resistance for T2
+  float wt1_beta = 0.0;  // initial parameters [K]
+  float wt1_TempC = 0.0; // variable output
+  //alarm holding and setpoint
+  int wt1_TAH = 0;       //0 = healthy, 1 = alarm
+  float wt1_TAH_SP = 105;   // alarm high setpoint
+  // ↑
 
-/* ↓
-tag:ot1 | description: Engine Oil Temperature
-functional description: Voltage divider to measure the resistance of the sensor
-note: 314 ohms is maximum measured capability */
-float ot1_R1 = 3292; //actual resistance of resistor between 12v line and the sensor
-//--NTC calibration
-float ot1_R0 = 197.3;  // value of rct in T0 [ohm] (Choose midpoint on curve near operating range or Datasheet correction temperature)
-float ot1_T0 = (273.15 + 50); // datasheet temperature at R0 (above)
-// use the datasheet to get this data.
-float ot1_T1 = (273.15 + 40);    // [K] in datasheet 0º C (fill in RHS number with LRV degrees C)
-float ot1_T2 = (273.15 + 120);    // [K] in datasheet 100° C (fill in RHS number with URV degrees C)
-float ot1_RT1 = 291.5; // [ohms]  resistance for T1
-float ot1_RT2 = 22.4;  // [ohms]   resistance for T2
-float ot1_beta = 0.0;  // initial parameters [K]
-float ot1_TempC = 0.0; // variable output
-//alarm holding and setpoint
-int ot1_TAH = 0;
-float ot1_TAH_SP = 105;   // alarm high setpoint
-// ↑
+/* ↓ tag:ot1 | description: Engine Oil Temperature
+  functional description: Voltage divider to measure the resistance of the sensor
+  note: 314 ohms is maximum measured capability */
+  float ot1_R1 = 3292; //actual resistance of resistor between 12v line and the sensor
+  //--NTC calibration
+  float ot1_R0 = 197.3;  // value of rct in T0 [ohm] (Choose midpoint on curve near operating range or Datasheet correction temperature)
+  float ot1_T0 = (273.15 + 50); // datasheet temperature at R0 (above)
+  // use the datasheet to get this data.
+  float ot1_T1 = (273.15 + 40);    // [K] in datasheet 0º C (fill in RHS number with LRV degrees C)
+  float ot1_T2 = (273.15 + 120);    // [K] in datasheet 100° C (fill in RHS number with URV degrees C)
+  float ot1_RT1 = 291.5; // [ohms]  resistance for T1
+  float ot1_RT2 = 22.4;  // [ohms]   resistance for T2
+  float ot1_beta = 0.0;  // initial parameters [K]
+  float ot1_TempC = 0.0; // variable output
+  //alarm holding and setpoint
+  int ot1_TAH = 0;
+  float ot1_TAH_SP = 105;   // alarm high setpoint
+  // ↑
 
 // for display ↓===========================
-#include <LiquidCrystal.h>
+  #include <LiquidCrystal.h>
 
-// select the pins used on the LCD panel (DF0009)
-LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
-/* buttons require 5v refernce with this shield.
+  // select the pins used on the LCD panel (DF0009)
+  LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+  /* buttons require 5v refernce with this shield.
   // define some values used by the panel and buttons
   // buttons don't work because different voltage reference is used!!
   int lcd_key     = 0;
@@ -305,7 +303,7 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 
   return btnNONE;  // when all others fail, return this...
   }*/
-// for display ↑==============================
+  // for display ↑==============================
 
 //Fuel level
   float fl1;
@@ -342,6 +340,12 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
   int bp1_span = 10;  //URV in pressure units
   String bp1_calUnits = "bar"; //units from instrument calibration. psi, kPa or bar
   String bp1_displayUnits = "bar"; //units to use in program. psi, kPa or bar
+
+  //pressure alarm holding and setpoint
+  int op1_PAL = 0;       //0 = healthy, 1 = alarm
+  float op1_PAL_SP = 1;   // alarm high setpoint in display UOM
+  int bp1_PAL = 0;       //0 = healthy, 1 = alarm
+  float bp1_PAL_SP = 5;   // alarm high setpoint in display UOM
 
 void setup() {
 
@@ -428,8 +432,10 @@ void level(int num) {
 void pressure(int num) {
   op1 = linearPressure(op1_pin,op1_LRV,op1_URV,op1_span,op1_calUnits,op1_displayUnits);
   bp1 = linearPressure(bp1_pin,bp1_LRV,bp1_URV,bp1_span,bp1_calUnits,bp1_displayUnits);
-}
 
+  op1_PAL = lowAlarm(op1, op1_PAL_SP);
+  bp1_PAL = lowAlarm(bp1, bp1_PAL_SP);
+}
 void myDisplay(int num) {
 //battery voltage alarm
  if(ebv1_VAH ==1){
@@ -493,45 +499,60 @@ void serialPrint(int num) {
   Serial.print("Engine Water Temp: ");
   Serial.print(wt1_TempC, 1);
   Serial.println("C");
+  if (wt1_TAH == 1) {
+    Serial.println("***Water Temp High Alarm***");
+  }
   //
   //Oil Temp Sensor ot1
   //
   Serial.print("Engine Oil Temp: ");
   Serial.print(ot1_TempC, 1);
   Serial.println("C");
+  if (ot1_TAH == 1) {
+    Serial.println("***Oil Temp High Alarm***");
+  }
 
   //Fuel Level Tank 1 fl1
   //
   Serial.print("Diesel Tank 1: ");
   Serial.print(fl1, 0); //0 decimal places
   Serial.println(fl1_displayUnits);
+  if (fl1_LAL == 1) {
+    Serial.println("***Fuel Tank 1 Low Alarm***");
+  }
   //Fuel Level Tank 2 fl2
   //
   Serial.print("Diesel Tank 2: ");
   Serial.print(fl2, 0); //0 decimal places
   Serial.println(fl2_displayUnits);
+  if (fl2_LAL == 1) {
+    Serial.println("***Fuel Tank 2 Low Alarm***");
+  }
   //Engine Oil Pressure op1
   //
   Serial.print("Engine Oil Pressure: ");
   Serial.print(op1, 1);
   Serial.println(op1_displayUnits);
+  if (op1_PAL == 1) {
+    Serial.println("***Engine Oil Pressure Low Alarm***");
   //Brake Pressure bp1
   //
   Serial.print("Brake Pressure: ");
   Serial.print(bp1, 1);
   Serial.println(bp1_displayUnits);
-
+  if (bp1_PAL == 1) {
+    Serial.println("***Brake Air Pressure Low Alarm***");
+}
   // Battery Voltage Alarm
- if(ebv1_VAH ==1){
-    Serial.println("Voltage High Alarm");
- }
- else{
-     Serial.print("Battery volts: ");
-     Serial.print(ebv1_volts);
-     Serial.println("volts");
+  Serial.print("Battery volts: ");
+  Serial.print(ebv1_volts);
+  Serial.println("volts");
+  if(ebv1_VAH ==1){
+    Serial.println("***Voltage High Alarm***");
  }
  Serial.println("");
  delay(800);
+}
 }
 void alarms(int num) {
 delay(10);
